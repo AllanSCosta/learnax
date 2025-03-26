@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "learnax"
+version = "0.1.0"
+description = "Training Pipeline Library"
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [{ name = "" }]
+requires-python = ">=3.9"
+dependencies = ["numpy", "e3nn_jax", "ordered_set", "flax", "einops", "wandb"]
+classifiers = [
+    "Intended Audience :: Developers",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+[project.optional-dependencies]
+dev = []
+test = ["pytest"]
+
+[tool]
+[tool.setuptools]
+package-dir = { "" = "." }
+
+[tool.pydocstyle]
+select = ["D415", "D403"]
+
+[tool.black]
+target-version = ['py311']
+include = '\.pyi?$'
+exclude = '''
+/(
+    .git
+    | .venv
+    | _build
+    | build
+    | dist
+)/
+'''
+
+[tool.flake8]
+ignore = ["E741", "E203", "W503", "E731", "E721"]
+max-line-length = 127
+max-complexity = 64
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
