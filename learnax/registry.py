@@ -18,6 +18,19 @@ import pickle
 
 import glob
 
+
+class RenameUnpickler(pickle.Unpickler):
+    def find_class(self, module, name):
+        renamed = module
+        if "trainax" in module:
+            renamed = module.replace("trainax", "learnax")
+        return super(RenameUnpickler, self).find_class(renamed, name)
+
+
+def renamed_load(file_obj):
+    return RenameUnpickler(file_obj).load()
+
+
 class Run:
 
     ''' Wrapper for wandb run object '''
@@ -74,19 +87,25 @@ class Run:
         entity: str = 'molecular-machines',
     ):
         wandb_path = path + '/wandb'
-        return wandb.init(
+        wandb_run = wandb.init(
             project=project,
             id=id,
             dir=os.path.expanduser(wandb_path),
             entity=entity,
             resume='must',
         )
+        run_path = os.path.join(path, id)
+        return cls(id, run_path, wandb_run.name, wandb_run)
 
-    def get_weights(self, checkpoint: int = -1):
+    def get_train_state(self, checkpoint: int = -1):
         if checkpoint == -1:
             checkpoint = 'latest'
         with open(f'{self.path}/checkpoints/state_{checkpoint}.pyd', 'rb') as f:
-            train_state = pickle.load(f)
+            train_state = renamed_load(f)
+        return train_state
+
+    def get_weights(self, checkpoint: int = -1):
+        train_state = self.get_train_state(checkpoint)
         return train_state.params
 
     def get_config(self):
