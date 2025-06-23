@@ -3,10 +3,6 @@ Learnax - JAX-based Training Framework
 
 Learnax is a powerful training framework built on JAX for accelerated machine learning research. It provides a clean, modular approach to training neural networks with built-in support for distributed computing, checkpointing, and experiment tracking.
 
-.. toctree::
-   :maxdepth: 4
-
-   self
 
 Key Features
 -----------
@@ -133,5 +129,11 @@ For detailed API documentation, see the following sections:
 - :mod:`learnax.checkpointer`
 - :mod:`learnax.loss`
 - :mod:`learnax.registry`
+
+
+.. toctree::
+   :maxdepth: 4
+
+   self
 
 * :ref:`genindex`
