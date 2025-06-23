@@ -1,10 +1,8 @@
 from collections import defaultdict
 import os
-import pickle
-import shutil
 import time
 from flax import linen as nn
-from typing import List,Callable, NamedTuple, Any
+from typing import List, Callable, NamedTuple, Any, Dict, Optional
 
 import jax
 from jax.tree_util import tree_map, tree_reduce
@@ -16,6 +14,9 @@ import functools
 from wandb.sdk.wandb_run import Run
 from torch.utils.data import DataLoader
 
+import einops as ein
+from .utils import tree_stack, tree_unstack
+from .checkpointer import Checkpointer
 
 def in_notebook():
     try:
@@ -72,15 +73,22 @@ class Trainer:
     def __init__(
         self,
         model: nn.Module,
-        learning_rate,
-        losses,
-        seed,
-        train_dataset,
-        num_epochs,
-        batch_size,
-        num_workers,
+        learning_rate: float,
+        losses: List[Callable],
+        seed: int,
+        train_dataset: List,
+        num_epochs : int,
+        batch_size : int,
+        num_workers : int,
+
         save_every: int = 300,
         checkpoint_every: int = 1000,
+        max_checkpoints: int = 5,
+        keep_best_checkpoint: bool = False,
+        best_metric_name: str = "val/loss",
+        minimize_metric: bool = True,
+        load_checkpoint: Optional[int] = None,
+
         val_every: int = None,
         val_datasets: List = None,
         save_model: Callable = None,
@@ -132,14 +140,26 @@ class Trainer:
         self.train_dataset = train_dataset
         self.num_epochs = num_epochs
         self.seed = seed
-        self.save_every = save_every
-        self.checkpoint_every = checkpoint_every
-
         if registry == None:
             self.registry_path = None
         else:
             self.registry_path = (
                 os.environ.get("TRAINAX_REGISTRY_PATH") + "/" + registry
+            )
+
+        # Initialize checkpointer if registry path and run are available
+        self.checkpointer = None
+        if self.registry_path and run:
+            self.checkpointer = Checkpointer(
+                registry_path=self.registry_path,
+                run_id=run.id,
+                save_every=save_every,
+                checkpoint_every=checkpoint_every,
+                max_to_keep=max_checkpoints,
+                keep_best=keep_best_checkpoint,
+                metric_name=best_metric_name,
+                minimize_metric=minimize_metric,
+                prepare_fn=jax.device_get
             )
 
         self.batch_size = batch_size
@@ -223,7 +243,14 @@ class Trainer:
                 opt_state,
             )
 
-        if train_state == None:
+        # Try loading from checkpoint if requested
+        if train_state is None and load_checkpoint is not None and self.checkpointer:
+            checkpoint_data = self.checkpointer.load_checkpoint(load_checkpoint)
+            if checkpoint_data:
+                print(f"Loaded checkpoint from step {checkpoint_data['step']}")
+                train_state = checkpoint_data['state']
+
+        if train_state is None:
             # Get a sample from the training data for initialization
             init_datum = next(iter(self.loaders["train"]))[0]
             # Ensure init_datum is a list for unpacking with *
@@ -483,41 +510,21 @@ class Trainer:
                             }
                         )
 
-                    # Save periodic checkpoints
-                    if (
-                        self.run
-                        and self.registry_path
-                        and self.train_state.step % self.checkpoint_every == 0
-                    ):
-                        registry_path = self.registry_path
-                        params_dir_path = os.path.join(
-                            registry_path, self.run.id, "checkpoints"
+                    # Handle checkpointing with the Checkpointer class
+                    if self.checkpointer:
+                        # Collect metrics for checkpointing
+                        checkpoint_metrics = {
+                            f"{split}/{k}": float(v) for k, v in step_metrics.items()
+                        }
+                        # Let the checkpointer handle all checkpoint logic
+                        saved_paths = self.checkpointer.maybe_save_checkpoints(
+                            self.train_state,
+                            self.train_state.step,
+                            checkpoint_metrics
                         )
-                        os.makedirs(params_dir_path, exist_ok=True)
-                        params_path = os.path.join(
-                            params_dir_path, f"state_{self.train_state.step}.pyd"
-                        )
-                        # Save numbered checkpoint
-                        with open(params_path, "wb") as file:
-                            checkpoint = jax.device_get(self.train_state)
-                            pickle.dump(checkpoint, file)
-
-                    # Save latest checkpoint
-                    if (
-                        self.run
-                        and self.registry_path
-                        and self.train_state.step % self.save_every == 0
-                    ):
-                        registry_path = self.registry_path
-                        params_dir_path = os.path.join(
-                            registry_path, self.run.id, "checkpoints"
-                        )
-                        os.makedirs(params_dir_path, exist_ok=True)
-                        params_path = os.path.join(params_dir_path, f"state_latest.pyd")
-                        # Save latest checkpoint
-                        with open(params_path, "wb") as file:
-                            checkpoint = jax.device_get(self.train_state)
-                            pickle.dump(checkpoint, file)
+                        if saved_paths:
+                            paths_str = ", ".join(f"{k}" for k in saved_paths.keys())
+                            print(f"Saved checkpoints: {paths_str}")
 
                 # Collect metrics for this epoch
                 for k, v in step_metrics.items():
@@ -537,18 +544,33 @@ class Trainer:
                         },
                     )
 
-    def train(self):
+    def train(self, resume_from_checkpoint: bool = False):
         """
         Run the full training loop for the configured number of epochs.
 
         This method:
-        1. Iterates through the specified number of epochs
-        2. Calls the epoch() method for each epoch
-        3. Returns the wandb run object if available
+        1. Optionally loads the latest checkpoint if resume_from_checkpoint is True
+        2. Iterates through the specified number of epochs
+        3. Calls the epoch() method for each epoch
+        4. Returns the wandb run object if available
+
+        Args:
+            resume_from_checkpoint (bool, optional): Whether to resume training from
+                the latest checkpoint. Defaults to False.
 
         Returns:
             The wandb Run object associated with this training run
         """
+        if resume_from_checkpoint and self.checkpointer:
+            checkpoint_data = self.checkpointer.load_latest()
+            if checkpoint_data:
+                print(f"Resuming training from step {checkpoint_data['step']}")
+                self.train_state = checkpoint_data['state']
+            else:
+                print("No checkpoint found for resuming training.")
+
         print("Training...")
         for epoch in tqdm(range(self.num_epochs), position=0):
             self.epoch(epoch=epoch)
+
+        return self.run
