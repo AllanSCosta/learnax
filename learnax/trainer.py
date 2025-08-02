@@ -1,5 +1,6 @@
 from collections import defaultdict
 import os
+from pickle import load
 import time
 from flax import linen as nn
 from typing import List, Callable, NamedTuple, Any, Dict, Optional
@@ -8,6 +9,7 @@ import jax
 from jax.tree_util import tree_map, tree_reduce
 import jax.numpy as jnp
 import numpy as np
+from learnax.loss import LossPipe
 import optax
 import functools
 
@@ -16,7 +18,7 @@ from torch.utils.data import DataLoader
 
 import einops as ein
 from .utils import tree_stack, tree_unstack
-from .checkpointer import Checkpointer
+from .checkpoint import Checkpointer
 
 def in_notebook():
     try:
@@ -74,16 +76,18 @@ class Trainer:
         self,
         model: nn.Module,
         learning_rate: float,
-        losses: List[Callable],
+        losses: LossPipe,
+
         seed: int,
         train_dataset: List,
         num_epochs : int,
         batch_size : int,
         num_workers : int,
+        max_grad: float = 1.0,
 
         save_every: int = 300,
-        checkpoint_every: int = 1000,
-        max_checkpoints: int = 5,
+        checkpoint_every: int = 5000,
+        max_checkpoints: Optional[int] = None,
         keep_best_checkpoint: bool = False,
         best_metric_name: str = "val/loss",
         minimize_metric: bool = True,
@@ -95,13 +99,16 @@ class Trainer:
         run: Run = None,
         registry=None,
         compile: bool = False,
+
         single_datum: bool = False,
         single_batch: bool = False,
         train_only: bool = False,
         plot_pipe: Callable = None,
         plot_every: int = 1000,
         plot_model: Callable = None,
+
         # plot_metrics: MetricsPipe = None,
+
         load_weights: bool = False,
         sample_every: int = None,
         sample_model: Callable = None,
@@ -140,6 +147,7 @@ class Trainer:
         self.train_dataset = train_dataset
         self.num_epochs = num_epochs
         self.seed = seed
+
         if registry == None:
             self.registry_path = None
         else:
@@ -149,6 +157,8 @@ class Trainer:
 
         # Initialize checkpointer if registry path and run are available
         self.checkpointer = None
+        self.load_checkpoint = load_checkpoint
+
         if self.registry_path and run:
             self.checkpointer = Checkpointer(
                 registry_path=self.registry_path,
@@ -169,7 +179,7 @@ class Trainer:
         self.run = run
 
         self.name = self.run.name if run else "trainer"
-        self.max_grad = 0.1
+        self.max_grad = max_grad
 
         def _make_loader(dataset):
             return DataLoader(
@@ -190,6 +200,7 @@ class Trainer:
         self.train_only = train_only
         self.single_batch = single_batch
         self.single_datum = single_datum
+        self.rng_seq = jax.random.key(self.seed)
 
         if self.single_batch:
             print("[!!WARNING!!] using single batch")
@@ -215,19 +226,27 @@ class Trainer:
         self.metrics = defaultdict(list)
 
         self.device_count = jax.local_device_count()
+        self.maybe_init()
 
-    def init(self, train_state=None):
+    def maybe_init(self):
         """
         Initialize the trainer.
 
         Args:
             train_state (TrainState, optional): The initial training state. Defaults to None.
         """
-        print("Initializing Model...")
-        # Create a random number generator key from the seed
-        self.rng_seq = jax.random.key(self.seed)
-        # Split the key to use one for initialization and keep the other for future use
-        self.rng_seq, init_rng = jax.random.split(self.rng_seq)
+        if self.load_checkpoint and self.checkpointer:
+            print("Loading Model from Latest Checkpoint...")
+            checkpoint_data = self.checkpointer.load_latest()
+            if checkpoint_data:
+                self.train_state = checkpoint_data['state']
+            else:
+                print("No checkpoint found for resuming training.")
+        else:
+            print("Initializing Model...")
+            self.init_train_state()
+
+    def init_train_state(self):
 
         def _init(rng, *datum):
             """Helper function to initialize model parameters and optimizer state."""
@@ -243,35 +262,28 @@ class Trainer:
                 opt_state,
             )
 
-        # Try loading from checkpoint if requested
-        if train_state is None and load_checkpoint is not None and self.checkpointer:
-            checkpoint_data = self.checkpointer.load_checkpoint(load_checkpoint)
-            if checkpoint_data:
-                print(f"Loaded checkpoint from step {checkpoint_data['step']}")
-                train_state = checkpoint_data['state']
+        # Split the key to use one for initialization and keep the other for future use
+        self.rng_seq, init_rng = jax.random.split(self.rng_seq)
 
-        if train_state is None:
-            # Get a sample from the training data for initialization
-            init_datum = next(iter(self.loaders["train"]))[0]
-            # Ensure init_datum is a list for unpacking with *
-            init_datum = [init_datum] if type(init_datum) != list else init_datum
+        # Get a sample from the training data for initialization
+        init_datum = next(iter(self.loaders["train"]))[0]
+        # Ensure init_datum is a list for unpacking with *
+        init_datum = [init_datum] if type(init_datum) != list else init_datum
 
-            # Measure initialization time
-            clock = time.time()
-            self.train_state = _init(init_rng, *init_datum)
-            print("Init Time:", time.time() - clock)
+        # Measure initialization time
+        clock = time.time()
+        self.train_state = _init(init_rng, *init_datum)
+        print("Init Time:", time.time() - clock)
 
-            # Calculate and log the total number of parameters
-            num_params = sum(
-                x.size for x in jax.tree_util.tree_leaves(self.train_state.params)
-            )
+        # Calculate and log the total number of parameters
+        num_params = sum(
+            x.size for x in jax.tree_util.tree_leaves(self.train_state.params)
+        )
 
-            print(f"Model has {num_params:.3e} parameters")
-            if self.run:
-                self.run.log({"model/num_params": num_params})
-        else:
-            # Use the provided training state
-            self.train_state = train_state
+        print(f"Model has {num_params:.3e} parameters")
+        if self.run:
+            self.run.log({"model/num_params": num_params})
+
 
     def loss(self, params, keys, batch):
         """
@@ -299,7 +311,7 @@ class Trainer:
                 {"params": params}, *datum, rngs={"params": rng_key}
             )
             # Calculate losses and metrics for this datum
-            return self.losses(rng_key, model_output, datum, 0)
+            return self.losses(model_output, datum, 0)
 
         # Apply the loss function to each datum in the batch using vmap
         output, loss, metrics = jax.vmap(_apply_losses, in_axes=(0, 0))(keys, batch)
@@ -371,10 +383,15 @@ class Trainer:
         grad = tree_map(lambda v: jnp.mean(v, axis=0), grad)
 
         # Clip gradients to prevent explosions
-        grad_leaves, _ = jax.tree.flatten(grad)
-        norm = jnp.sqrt(sum(jnp.vdot(x, x) for x in grad_leaves))
-        normalize = lambda g: jnp.where(norm < self.max_grad, g, g * (self.max_grad / norm))
-        grad = jax.tree.map(normalize, grad)
+        grad_leaves, _ = jax.tree_util.tree_flatten_with_path(grad)
+        keys, leaves = zip(*grad_leaves)
+        norms = jnp.array([jnp.linalg.norm(x) for x in leaves])
+        norm = jnp.sqrt(jnp.sum(norms**2))
+
+        grads = {jax.tree_util.keystr(k): v for k, v in zip(keys, norms)}
+
+        if norm > self.max_grad:
+            grad = jax.tree.map(lambda g: g * (self.max_grad / norm), grad)
 
         # Add gradient norm to metrics for monitoring
         metrics.update({"gradient norm": norm})
@@ -384,7 +401,7 @@ class Trainer:
         params = optax.apply_updates(state.params, updates)
 
         # Return model output, updated state, and metrics
-        return output, TrainState(params, opt_state, state.step + 1), metrics
+        return output, TrainState(params, opt_state, state.step + 1), metrics, grads
 
     def epoch(self, epoch):
         """
@@ -458,7 +475,7 @@ class Trainer:
 
                 # Time the update step for performance monitoring
                 bp_start_time = time.time()
-                _, new_train_state, step_metrics = self.update(
+                _, new_train_state, step_metrics, step_grad_norms = self.update(
                     keys, self.train_state, batch
                 )
                 bp_end_time = time.time()
@@ -506,6 +523,10 @@ class Trainer:
                                     f"{split}/{k}": float(v)
                                     for (k, v) in step_metrics.items()
                                 },
+                                **{
+                                    f"grads/{k}": float(v)
+                                    for (k, v) in step_grad_norms.items()
+                                },
                                 "step": self.train_state.step,
                             }
                         )
@@ -544,7 +565,7 @@ class Trainer:
                         },
                     )
 
-    def train(self, resume_from_checkpoint: bool = False):
+    def train(self):
         """
         Run the full training loop for the configured number of epochs.
 
@@ -561,16 +582,7 @@ class Trainer:
         Returns:
             The wandb Run object associated with this training run
         """
-        if resume_from_checkpoint and self.checkpointer:
-            checkpoint_data = self.checkpointer.load_latest()
-            if checkpoint_data:
-                print(f"Resuming training from step {checkpoint_data['step']}")
-                self.train_state = checkpoint_data['state']
-            else:
-                print("No checkpoint found for resuming training.")
-
         print("Training...")
         for epoch in tqdm(range(self.num_epochs), position=0):
             self.epoch(epoch=epoch)
-
         return self.run

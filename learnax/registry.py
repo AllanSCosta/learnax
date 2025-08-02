@@ -8,28 +8,9 @@ from pathlib import Path
 
 import wandb
 
-
-# logger = logging.getLogger("aim.sdk.reporter")
-# logger.setLevel(logging.WARNING)
-
-
 from omegaconf import OmegaConf
-import pickle
 
-import glob
-
-
-class RenameUnpickler(pickle.Unpickler):
-    def find_class(self, module, name):
-        renamed = module
-        if "trainax" in module:
-            renamed = module.replace("trainax", "learnax")
-        return super(RenameUnpickler, self).find_class(renamed, name)
-
-
-def renamed_load(file_obj):
-    return RenameUnpickler(file_obj).load()
-
+from .run import Run
 
 class Registry:
     """

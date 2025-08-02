@@ -32,8 +32,8 @@ class Checkpointer:
         registry_path: str,
         run_id: str,
         save_every: int = 300,
-        checkpoint_every: int = 1000,
-        max_to_keep: int = 5,
+        checkpoint_every: int = 5000,
+        max_to_keep: Union[int, float] = None,
         keep_best: bool = False,
         metric_name: str = "val/loss",
         minimize_metric: bool = True,
@@ -252,7 +252,7 @@ class Checkpointer:
         """
         Remove old numbered checkpoints to stay within max_to_keep limit.
         """
-        if not self.checkpoint_dir or self.max_to_keep <= 0:
+        if not self.checkpoint_dir or self.max_to_keep is None or self.max_to_keep <= 0:
             return
 
         # Find all numbered checkpoint files
@@ -282,6 +282,7 @@ class Checkpointer:
     def load_checkpoint(self, path_or_index: Union[str, int]) -> Dict[str, Any]:
         if not self.checkpoint_dir:
             return None
+
         if path_or_index == -1:
             path = os.path.join(self.checkpoint_dir, "state_latest.pyd")
         else:
@@ -306,12 +307,7 @@ class Checkpointer:
         """
         if not self.checkpoint_dir:
             return None
-
-        path = os.path.join(self.checkpoint_dir, "state_latest.pyd")
-        if not os.path.exists(path):
-            return None
-
-        return self.load_checkpoint(path)
+        return self.load_checkpoint(-1)
 
     def load_best(self) -> Dict[str, Any]:
         """
@@ -328,18 +324,6 @@ class Checkpointer:
             return None
 
         return self.load_checkpoint(path)
-
-    def get_latest_step(self) -> Optional[int]:
-        """
-        Get the step number from the latest checkpoint.
-
-        Returns:
-            int: Step number, or None if no latest checkpoint exists
-        """
-        checkpoint = self.load_latest()
-        if checkpoint and 'step' in checkpoint:
-            return checkpoint['step']
-        return None
 
     def list_available_checkpoints(self) -> Dict[str, str]:
         """

@@ -9,6 +9,7 @@ import glob
 import pickle
 import shutil
 
+from typing import Callable, Any
 
 class Run:
     """Wrapper for wandb run object"""
@@ -79,12 +80,12 @@ class Run:
         if checkpoint == -1:
             checkpoint = "latest"
         with open(f"{self.path}/checkpoints/state_{checkpoint}.pyd", "rb") as f:
-            train_state = renamed_load(f)
+            train_state = pickle.load(f)
         return train_state
 
     def get_weights(self, checkpoint: int = -1):
-        train_state = self.get_train_state(checkpoint)
-        return train_state.params
+        checkpoint = self.get_train_state(checkpoint)
+        return checkpoint['state'].params
 
     def get_config(self):
         with open(f"{self.path}/config.yml", "r") as f:
@@ -99,15 +100,14 @@ class Run:
             content = pickle.load(f)
         return content
 
-    def read_all(self, pattern: str):
+    def read_all(self, pattern: str, read_fn: Callable[[str], Any] = lambda x: pickle.load(open(x, "rb"))):
         contents = []
 
         search_pattern = self.path + "/**/" + pattern
         files = glob.glob(search_pattern, recursive=True)
 
         for file in files:
-            with open(file, "rb") as f:
-                contents.append((file, pickle.load(f)))
+            contents.append((file, read_fn(file)))
 
         return dict(contents)
 

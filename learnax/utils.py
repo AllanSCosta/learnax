@@ -1,12 +1,12 @@
 import jax
 import jax.numpy as jnp
 import numpy as np
-from jax.tree_util import tree_map, tree_flatten
+from jax.tree_util import tree_map_with_path, tree_flatten
 import jaxlib
 
 
 def tree_stack(trees):
-    def _stack(*v):
+    def _stack(k, *v):
         try:
             if (
                 type(v[0]) == np.ndarray
@@ -20,9 +20,10 @@ def tree_stack(trees):
 
                 return None
         except:
+            print(f"Error stacking at key: {k}, values: {v}")
             breakpoint()
 
-    return tree_map(_stack, *trees)
+    return tree_map_with_path(_stack, *trees)
 
 
 def tree_unstack(tree):
