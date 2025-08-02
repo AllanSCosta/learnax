@@ -1,0 +1,37 @@
+learnax.registry
+================
+
+.. py:module:: learnax.registry
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   learnax.registry.Registry
+
+
+Module Contents
+---------------
+
+.. py:class:: Registry(project: str, base_path: str = None)
+
+   Abstract collection of models
+
+
+   .. py:attribute:: project
+
+
+   .. py:attribute:: path
+
+
+   .. py:method:: new_run(config: omegaconf.OmegaConf) -> learnax.run.Run
+
+
+   .. py:method:: restore_run(id: str, read_only=False) -> learnax.run.Run
+
+
+   .. py:method:: fetch_run(id: str) -> learnax.run.Run
+
+

@@ -1,0 +1,30 @@
+learnax.metrics
+===============
+
+.. py:module:: learnax.metrics
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   learnax.metrics.Metric
+   learnax.metrics.MetricPipe
+
+
+Module Contents
+---------------
+
+.. py:class:: Metric(transform: Optional[Callable] = None)
+
+   .. py:attribute:: transform
+      :value: None
+
+
+
+.. py:class:: MetricPipe(metrics_list: List[Metric])
+
+   .. py:attribute:: metrics_list
+
+

@@ -1,0 +1,656 @@
+learnax
+=======
+
+.. py:module:: learnax
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/learnax/checkpoint/index
+   /autoapi/learnax/dataset/index
+   /autoapi/learnax/loss/index
+   /autoapi/learnax/metrics/index
+   /autoapi/learnax/registry/index
+   /autoapi/learnax/run/index
+   /autoapi/learnax/sampler/index
+   /autoapi/learnax/trainer/index
+   /autoapi/learnax/transform/index
+   /autoapi/learnax/utils/index
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   learnax.libcudart
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   learnax.Run
+   learnax.Registry
+   learnax.LossPipe
+   learnax.Checkpointer
+   learnax.TrainState
+   learnax.Trainer
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   learnax.tree_stack
+   learnax.tree_unstack
+   learnax.in_notebook
+   learnax.tree_stack
+   learnax.tree_unstack
+
+
+Package Contents
+----------------
+
+.. py:class:: Run(id: str, path: str, name: str = None, wandb_run=None)
+
+   Wrapper for wandb run object
+
+
+   .. py:attribute:: id
+
+
+   .. py:attribute:: path
+
+
+   .. py:attribute:: name
+      :value: None
+
+
+
+   .. py:attribute:: wandb_run
+      :value: None
+
+
+
+   .. py:method:: log(data)
+
+
+   .. py:method:: new(project: str, path: str, config: omegaconf.OmegaConf, entity: str = 'molecular-machines')
+      :classmethod:
+
+
+
+   .. py:method:: restore(id: str, path: str, project: str, entity: str = 'molecular-machines')
+      :classmethod:
+
+
+
+   .. py:method:: get_train_state(checkpoint: int = -1)
+
+
+   .. py:method:: get_weights(checkpoint: int = -1)
+
+
+   .. py:method:: get_config()
+
+
+   .. py:method:: read(filepath: str)
+
+
+   .. py:method:: read_all(pattern: str, read_fn: Callable[[str], Any] = lambda x: pickle.load(open(x, 'rb')))
+
+
+   .. py:method:: save(filepath: str, content)
+
+
+   .. py:method:: clear_dir(dirpath: str)
+
+
+.. py:class:: Registry(project: str, base_path: str = None)
+
+   Abstract collection of models
+
+
+   .. py:attribute:: project
+
+
+   .. py:attribute:: path
+
+
+   .. py:method:: new_run(config: omegaconf.OmegaConf) -> learnax.run.Run
+
+
+   .. py:method:: restore_run(id: str, read_only=False) -> learnax.run.Run
+
+
+   .. py:method:: fetch_run(id: str) -> learnax.run.Run
+
+
+.. py:class:: LossPipe(loss_list: List[LossFunction], transform: Optional[Callable] = None)
+
+   .. py:attribute:: loss_list
+
+
+   .. py:attribute:: transform
+      :value: None
+
+
+
+.. py:function:: tree_stack(trees)
+
+.. py:function:: tree_unstack(tree)
+
+.. py:class:: Checkpointer(registry_path: str, run_id: str, save_every: int = 300, checkpoint_every: int = 5000, max_to_keep: Union[int, float] = None, keep_best: bool = False, metric_name: str = 'val/loss', minimize_metric: bool = True, prepare_fn: Callable = None)
+
+   A class for managing model checkpoints during training.
+
+   This class handles the saving, loading, and management of checkpoints,
+   providing a simple interface that abstracts away the details of file management,
+   serialization, and device handling.
+
+   .. attribute:: registry_path
+
+      Base directory for saving checkpoints
+
+      :type: str
+
+   .. attribute:: run_id
+
+      Identifier for the current run
+
+      :type: str
+
+   .. attribute:: checkpoint_dir
+
+      Full path to the checkpoint directory
+
+      :type: str
+
+   .. attribute:: save_every
+
+      Steps between saving regular checkpoints
+
+      :type: int
+
+   .. attribute:: checkpoint_every
+
+      Steps between saving numbered checkpoints
+
+      :type: int
+
+   .. attribute:: max_to_keep
+
+      Maximum number of numbered checkpoints to retain
+
+      :type: int
+
+   .. attribute:: keep_best
+
+      Whether to retain the best checkpoint based on a metric
+
+      :type: bool
+
+   .. attribute:: metric_name
+
+      Name of the metric to use for best checkpoint selection
+
+      :type: str
+
+   .. attribute:: minimize_metric
+
+      Whether the metric should be minimized (True) or maximized (False)
+
+      :type: bool
+
+   .. attribute:: best_metric_value
+
+      Current best metric value
+
+      :type: float
+
+   .. attribute:: prepare_fn
+
+      Function to prepare state for checkpointing
+
+      :type: Callable
+
+
+   .. py:attribute:: registry_path
+
+
+   .. py:attribute:: run_id
+
+
+   .. py:attribute:: checkpoint_dir
+
+
+   .. py:attribute:: save_every
+      :value: 300
+
+
+
+   .. py:attribute:: checkpoint_every
+      :value: 5000
+
+
+
+   .. py:attribute:: max_to_keep
+      :value: None
+
+
+
+   .. py:attribute:: keep_best
+      :value: False
+
+
+
+   .. py:attribute:: metric_name
+      :value: 'val/loss'
+
+
+
+   .. py:attribute:: minimize_metric
+      :value: True
+
+
+
+   .. py:attribute:: best_metric_value
+
+
+   .. py:attribute:: prepare_fn
+
+
+   .. py:method:: should_save_latest(step: int) -> bool
+
+      Check if the latest checkpoint should be saved at the current step.
+
+      :param step: Current training step
+      :type step: int
+
+      :returns: True if the latest checkpoint should be saved, False otherwise
+      :rtype: bool
+
+
+
+   .. py:method:: should_save_numbered(step: int) -> bool
+
+      Check if a numbered checkpoint should be saved at the current step.
+
+      :param step: Current training step
+      :type step: int
+
+      :returns: True if a numbered checkpoint should be saved, False otherwise
+      :rtype: bool
+
+
+
+   .. py:method:: save_checkpoint(train_state: Any, step: int = None, metrics: Dict[str, float] = None, is_best: bool = False, suffix: str = None) -> str
+
+      Save a checkpoint with the given training state.
+
+      :param train_state: Training state to save
+      :type train_state: Any
+      :param step: Current step. If None, extracted from train_state.
+      :type step: int, optional
+      :param metrics: Current metrics to save with checkpoint
+      :type metrics: Dict[str, float], optional
+      :param is_best: Whether this is marked as the best checkpoint
+      :type is_best: bool
+      :param suffix: Optional suffix to add to the checkpoint filename
+      :type suffix: str, optional
+
+      :returns: Path to the saved checkpoint, or None if saving failed
+      :rtype: str
+
+
+
+   .. py:method:: save_latest(train_state: Any, step: int = None, metrics: Dict[str, float] = None) -> str
+
+      Save the latest checkpoint.
+
+      :param train_state: Training state to save
+      :type train_state: Any
+      :param step: Current step
+      :type step: int, optional
+      :param metrics: Current metrics
+      :type metrics: Dict[str, float], optional
+
+      :returns: Path to the saved checkpoint, or None if saving failed
+      :rtype: str
+
+
+
+   .. py:method:: update_best_checkpoint(train_state: Any, metric_value: float, step: int = None) -> bool
+
+      Update the best checkpoint if the given metric value is better.
+
+      :param train_state: Training state to save
+      :type train_state: Any
+      :param metric_value: Value of the metric to compare
+      :type metric_value: float
+      :param step: Current step
+      :type step: int, optional
+
+      :returns: True if a new best checkpoint was saved, False otherwise
+      :rtype: bool
+
+
+
+   .. py:method:: maybe_save_checkpoints(train_state: Any, step: int, metrics: Dict[str, float] = None) -> Dict[str, str]
+
+      Save checkpoints if appropriate based on current step and configuration.
+
+      This method handles saving both latest and numbered checkpoints according
+      to the configured intervals, and also updates the best checkpoint if needed.
+
+      :param train_state: Training state to save
+      :type train_state: Any
+      :param step: Current training step
+      :type step: int
+      :param metrics: Current metrics
+      :type metrics: Dict[str, float], optional
+
+      :returns: Paths to saved checkpoints by type
+      :rtype: Dict[str, str]
+
+
+
+   .. py:method:: load_checkpoint(path_or_index: Union[str, int]) -> Dict[str, Any]
+
+
+   .. py:method:: load_latest() -> Dict[str, Any]
+
+      Load the latest checkpoint.
+
+      :returns: Loaded checkpoint data, or None if loading failed
+      :rtype: Dict[str, Any]
+
+
+
+   .. py:method:: load_best() -> Dict[str, Any]
+
+      Load the best checkpoint.
+
+      :returns: Loaded checkpoint data, or None if loading failed
+      :rtype: Dict[str, Any]
+
+
+
+   .. py:method:: list_available_checkpoints() -> Dict[str, str]
+
+      List all available checkpoints.
+
+      :returns: Dictionary of available checkpoint types and their paths
+      :rtype: Dict[str, str]
+
+
+
+.. py:function:: in_notebook()
+
+.. py:class:: TrainState
+
+   Bases: :py:obj:`NamedTuple`
+
+
+   .. py:attribute:: params
+      :type:  Any
+
+
+   .. py:attribute:: opt_state
+      :type:  Any
+
+
+   .. py:attribute:: step
+      :type:  int
+      :value: 0
+
+
+
+.. py:data:: libcudart
+
+.. py:class:: Trainer(model: flax.linen.Module, learning_rate: float, losses: learnax.loss.LossPipe, seed: int, train_dataset: List, num_epochs: int, batch_size: int, num_workers: int, max_grad: float = 1.0, save_every: int = 300, checkpoint_every: int = 5000, max_checkpoints: Optional[int] = None, keep_best_checkpoint: bool = False, best_metric_name: str = 'val/loss', minimize_metric: bool = True, load_checkpoint: Optional[int] = None, val_every: int = None, val_datasets: List = None, save_model: Callable = None, run: wandb.sdk.wandb_run.Run = None, registry=None, compile: bool = False, single_datum: bool = False, single_batch: bool = False, train_only: bool = False, plot_pipe: Callable = None, plot_every: int = 1000, plot_model: Callable = None, load_weights: bool = False, sample_every: int = None, sample_model: Callable = None, sample_params: str = None, sample_plot: Callable = None, sample_batch_size=None, sample_metrics=None)
+
+   Trainer class for training Flax models with batched data processing and distributed training support.
+
+   This trainer handles:
+   - Model initialization and parameter management
+   - Training loop execution with gradient updates
+   - Checkpointing calls and model saving
+   - Metrics tracking and logging through wandb
+   - Distributed training with jax.pmap
+   - Distribution of batches with jax.vmap
+   - Validation dataset evaluation
+   - Optional model visualization and sampling
+
+   The trainer supports configurable training schedules, gradient clipping, and
+   various debugging options like single batch or single datum training.
+
+
+
+   .. py:attribute:: model
+
+
+   .. py:attribute:: transform
+
+
+   .. py:attribute:: optimizer
+
+
+   .. py:attribute:: losses
+
+
+   .. py:attribute:: train_dataset
+
+
+   .. py:attribute:: num_epochs
+
+
+   .. py:attribute:: seed
+
+
+   .. py:attribute:: checkpointer
+      :value: None
+
+
+
+   .. py:attribute:: load_checkpoint
+      :value: None
+
+
+
+   .. py:attribute:: batch_size
+
+
+   .. py:attribute:: num_workers
+
+
+   .. py:attribute:: save_model
+      :value: None
+
+
+
+   .. py:attribute:: run
+      :value: None
+
+
+
+   .. py:attribute:: name
+      :value: 'trainer'
+
+
+
+   .. py:attribute:: max_grad
+      :value: 1.0
+
+
+
+   .. py:attribute:: loaders
+
+
+   .. py:attribute:: train_only
+      :value: False
+
+
+
+   .. py:attribute:: single_batch
+      :value: False
+
+
+
+   .. py:attribute:: single_datum
+      :value: False
+
+
+
+   .. py:attribute:: rng_seq
+
+
+   .. py:attribute:: plot_pipe
+      :value: None
+
+
+
+   .. py:attribute:: plot_every
+      :value: 1000
+
+
+
+   .. py:attribute:: plot_model
+      :value: None
+
+
+
+   .. py:attribute:: val_every
+      :value: None
+
+
+
+   .. py:attribute:: load_weights
+      :value: False
+
+
+
+   .. py:attribute:: sample_every
+      :value: None
+
+
+
+   .. py:attribute:: metrics
+
+
+   .. py:attribute:: device_count
+
+
+   .. py:method:: maybe_init()
+
+      Initialize the trainer.
+
+      :param train_state: The initial training state. Defaults to None.
+      :type train_state: TrainState, optional
+
+
+
+   .. py:method:: init_train_state()
+
+
+   .. py:method:: loss(params, keys, batch)
+
+      Calculate the loss and metrics for a batch of data.
+
+      This method:
+      1. Applies the model to each datum in the batch (using vmap)
+      2. Computes losses and metrics for each prediction
+      3. Handles NaN values in the loss
+      4. Returns the mean loss and metrics
+
+      :param params: Model parameters
+      :param keys: RNG keys for each datum in the batch
+      :param batch: Batch of data to process
+
+      :returns:
+
+                - Mean loss value
+                - Tuple of (model outputs, loss, metrics)
+      :rtype: A tuple containing
+
+
+
+   .. py:method:: grad(params, keys, batch)
+
+      Compute gradients for the loss function with respect to parameters.
+
+      This is a parallel mapped (pmap) function that computes gradients across
+      multiple devices. It uses JAX's automatic differentiation to calculate
+      gradients of the loss with respect to model parameters.
+
+      :param params: Model parameters
+      :param keys: RNG keys for stochasticity
+      :param batch: Batch of data distributed across devices
+
+      :returns: Tuple of (gradients, auxiliary outputs from loss)
+
+
+
+   .. py:method:: update(rng, state, batch)
+
+      Update model parameters based on computed gradients.
+
+      This method:
+      1. Computes gradients using the grad() method
+      2. Averages metrics and losses across devices
+      3. Clips gradients to prevent exploding gradients
+      4. Updates parameters using the optimizer
+      5. Returns the updated training state and metrics
+
+      :param rng: Random number generator key
+      :param state: Current TrainState (params, opt_state, step)
+      :param batch: Batch of data to process
+
+      :returns: Tuple of (model_output, new_train_state, metrics)
+
+
+
+   .. py:method:: epoch(epoch)
+
+      Run a single epoch of training or validation.
+
+      This method processes all data splits (train, validation, etc.) for a single epoch:
+      1. Iterates through batches of each data loader
+      2. Processes each batch with the model
+      3. Updates parameters for training splits
+      4. Logs metrics and saves checkpoints
+      5. Handles NaN parameters and skips problematic updates
+
+      :param epoch: Current epoch number
+
+
+
+   .. py:method:: train()
+
+      Run the full training loop for the configured number of epochs.
+
+      This method:
+      1. Optionally loads the latest checkpoint if resume_from_checkpoint is True
+      2. Iterates through the specified number of epochs
+      3. Calls the epoch() method for each epoch
+      4. Returns the wandb run object if available
+
+      :param resume_from_checkpoint: Whether to resume training from
+                                     the latest checkpoint. Defaults to False.
+      :type resume_from_checkpoint: bool, optional
+
+      :returns: The wandb Run object associated with this training run
+
+
+
+.. py:function:: tree_stack(trees)
+
+.. py:function:: tree_unstack(tree)
+

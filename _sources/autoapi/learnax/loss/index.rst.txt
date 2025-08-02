@@ -1,0 +1,38 @@
+learnax.loss
+============
+
+.. py:module:: learnax.loss
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   learnax.loss.LossFunction
+   learnax.loss.LossPipe
+
+
+Module Contents
+---------------
+
+.. py:class:: LossFunction(weight: float = 1.0, scheduler: Optional[Callable] = lambda x: 1.0)
+
+   .. py:attribute:: weight
+      :value: 1.0
+
+
+
+   .. py:attribute:: scheduler
+
+
+.. py:class:: LossPipe(loss_list: List[LossFunction], transform: Optional[Callable] = None)
+
+   .. py:attribute:: loss_list
+
+
+   .. py:attribute:: transform
+      :value: None
+
+
+

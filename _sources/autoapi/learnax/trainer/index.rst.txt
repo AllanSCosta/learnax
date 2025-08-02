@@ -1,0 +1,292 @@
+learnax.trainer
+===============
+
+.. py:module:: learnax.trainer
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   learnax.trainer.libcudart
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   learnax.trainer.TrainState
+   learnax.trainer.Trainer
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   learnax.trainer.in_notebook
+
+
+Module Contents
+---------------
+
+.. py:function:: in_notebook()
+
+.. py:class:: TrainState
+
+   Bases: :py:obj:`NamedTuple`
+
+
+   .. py:attribute:: params
+      :type:  Any
+
+
+   .. py:attribute:: opt_state
+      :type:  Any
+
+
+   .. py:attribute:: step
+      :type:  int
+      :value: 0
+
+
+
+.. py:data:: libcudart
+
+.. py:class:: Trainer(model: flax.linen.Module, learning_rate: float, losses: learnax.loss.LossPipe, seed: int, train_dataset: List, num_epochs: int, batch_size: int, num_workers: int, max_grad: float = 1.0, save_every: int = 300, checkpoint_every: int = 5000, max_checkpoints: Optional[int] = None, keep_best_checkpoint: bool = False, best_metric_name: str = 'val/loss', minimize_metric: bool = True, load_checkpoint: Optional[int] = None, val_every: int = None, val_datasets: List = None, save_model: Callable = None, run: wandb.sdk.wandb_run.Run = None, registry=None, compile: bool = False, single_datum: bool = False, single_batch: bool = False, train_only: bool = False, plot_pipe: Callable = None, plot_every: int = 1000, plot_model: Callable = None, load_weights: bool = False, sample_every: int = None, sample_model: Callable = None, sample_params: str = None, sample_plot: Callable = None, sample_batch_size=None, sample_metrics=None)
+
+   Trainer class for training Flax models with batched data processing and distributed training support.
+
+   This trainer handles:
+   - Model initialization and parameter management
+   - Training loop execution with gradient updates
+   - Checkpointing calls and model saving
+   - Metrics tracking and logging through wandb
+   - Distributed training with jax.pmap
+   - Distribution of batches with jax.vmap
+   - Validation dataset evaluation
+   - Optional model visualization and sampling
+
+   The trainer supports configurable training schedules, gradient clipping, and
+   various debugging options like single batch or single datum training.
+
+
+
+   .. py:attribute:: model
+
+
+   .. py:attribute:: transform
+
+
+   .. py:attribute:: optimizer
+
+
+   .. py:attribute:: losses
+
+
+   .. py:attribute:: train_dataset
+
+
+   .. py:attribute:: num_epochs
+
+
+   .. py:attribute:: seed
+
+
+   .. py:attribute:: checkpointer
+      :value: None
+
+
+
+   .. py:attribute:: load_checkpoint
+      :value: None
+
+
+
+   .. py:attribute:: batch_size
+
+
+   .. py:attribute:: num_workers
+
+
+   .. py:attribute:: save_model
+      :value: None
+
+
+
+   .. py:attribute:: run
+      :value: None
+
+
+
+   .. py:attribute:: name
+      :value: 'trainer'
+
+
+
+   .. py:attribute:: max_grad
+      :value: 1.0
+
+
+
+   .. py:attribute:: loaders
+
+
+   .. py:attribute:: train_only
+      :value: False
+
+
+
+   .. py:attribute:: single_batch
+      :value: False
+
+
+
+   .. py:attribute:: single_datum
+      :value: False
+
+
+
+   .. py:attribute:: rng_seq
+
+
+   .. py:attribute:: plot_pipe
+      :value: None
+
+
+
+   .. py:attribute:: plot_every
+      :value: 1000
+
+
+
+   .. py:attribute:: plot_model
+      :value: None
+
+
+
+   .. py:attribute:: val_every
+      :value: None
+
+
+
+   .. py:attribute:: load_weights
+      :value: False
+
+
+
+   .. py:attribute:: sample_every
+      :value: None
+
+
+
+   .. py:attribute:: metrics
+
+
+   .. py:attribute:: device_count
+
+
+   .. py:method:: maybe_init()
+
+      Initialize the trainer.
+
+      :param train_state: The initial training state. Defaults to None.
+      :type train_state: TrainState, optional
+
+
+
+   .. py:method:: init_train_state()
+
+
+   .. py:method:: loss(params, keys, batch)
+
+      Calculate the loss and metrics for a batch of data.
+
+      This method:
+      1. Applies the model to each datum in the batch (using vmap)
+      2. Computes losses and metrics for each prediction
+      3. Handles NaN values in the loss
+      4. Returns the mean loss and metrics
+
+      :param params: Model parameters
+      :param keys: RNG keys for each datum in the batch
+      :param batch: Batch of data to process
+
+      :returns:
+
+                - Mean loss value
+                - Tuple of (model outputs, loss, metrics)
+      :rtype: A tuple containing
+
+
+
+   .. py:method:: grad(params, keys, batch)
+
+      Compute gradients for the loss function with respect to parameters.
+
+      This is a parallel mapped (pmap) function that computes gradients across
+      multiple devices. It uses JAX's automatic differentiation to calculate
+      gradients of the loss with respect to model parameters.
+
+      :param params: Model parameters
+      :param keys: RNG keys for stochasticity
+      :param batch: Batch of data distributed across devices
+
+      :returns: Tuple of (gradients, auxiliary outputs from loss)
+
+
+
+   .. py:method:: update(rng, state, batch)
+
+      Update model parameters based on computed gradients.
+
+      This method:
+      1. Computes gradients using the grad() method
+      2. Averages metrics and losses across devices
+      3. Clips gradients to prevent exploding gradients
+      4. Updates parameters using the optimizer
+      5. Returns the updated training state and metrics
+
+      :param rng: Random number generator key
+      :param state: Current TrainState (params, opt_state, step)
+      :param batch: Batch of data to process
+
+      :returns: Tuple of (model_output, new_train_state, metrics)
+
+
+
+   .. py:method:: epoch(epoch)
+
+      Run a single epoch of training or validation.
+
+      This method processes all data splits (train, validation, etc.) for a single epoch:
+      1. Iterates through batches of each data loader
+      2. Processes each batch with the model
+      3. Updates parameters for training splits
+      4. Logs metrics and saves checkpoints
+      5. Handles NaN parameters and skips problematic updates
+
+      :param epoch: Current epoch number
+
+
+
+   .. py:method:: train()
+
+      Run the full training loop for the configured number of epochs.
+
+      This method:
+      1. Optionally loads the latest checkpoint if resume_from_checkpoint is True
+      2. Iterates through the specified number of epochs
+      3. Calls the epoch() method for each epoch
+      4. Returns the wandb run object if available
+
+      :param resume_from_checkpoint: Whether to resume training from
+                                     the latest checkpoint. Defaults to False.
+      :type resume_from_checkpoint: bool, optional
+
+      :returns: The wandb Run object associated with this training run
+
+
+

@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#2D2D2D" />
+    
+    <title>learnax :: Learnax - JAX-based Training Framework</title>
+    
+
+    <link rel="icon" type="image/png" sizes="32x32" href="_static/logo.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="_static/logo.png">
+    <link rel="index" title="Index" href="genindex.html" />
+
+    <link rel="stylesheet" href="_static/css/insegel.css" />
+    <link rel="stylesheet" href="_static/css/custom.css" />
+
+    <script type="text/javascript" id="documentation_options" data-url_root="./"
+        src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/sphinx_highlight.js"></script>
+    
+
+    <script
+        src="https://email.tl.fortawesome.com/c/eJxNjUEOgyAQAF8jR7Kw6wIHDh7sP1Cw2mgxgmn6-3JsMqc5zEQfE8dkxOY1KKMUOI3ACFKRJpSW2AAp7ontYIaxI6i7XPJVwyeVfCQ550Os3jLrGSNOLgbdAy6s0PBk2TFNjEbsfq31LB0OnX407pJa5v2faRadwSW63mn5KuLyR9j2tgx3zecanl-55R_-jjPs"></script> 
+</head>
+
+<body>
+    <div id="insegel-container">
+        <header>
+            <div id="logo-container">
+                
+                <a href="#"><img src="_static/logo.png"></a>
+                
+            </div>
+            <div id="project-container">
+                
+                <h1><strong>learnax</strong> Documentation</h1>
+                
+            </div>
+        </header>
+
+        <div id="content-container">
+
+            <div id="main-content-container">
+                <div id="main-content" role="main">
+                    
+  <section id="learnax-jax-based-training-framework">
+<h1>Learnax - JAX-based Training Framework<a class="headerlink" href="#learnax-jax-based-training-framework" title="Link to this heading">¶</a></h1>
+<p>Learnax is a powerful training framework built on JAX for accelerated machine learning research. It provides a clean, modular approach to training neural networks with built-in support for distributed computing, checkpointing, and experiment tracking.</p>
+<section id="key-features">
+<h2>Key Features<a class="headerlink" href="#key-features" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><strong>JAX-based acceleration</strong>: Leverage the power of JAX’s transformations and GPU/TPU acceleration</p></li>
+<li><p><strong>Distributed training</strong>: Automatic parallel training across multiple devices using <code class="docutils literal notranslate"><span class="pre">jax.pmap</span></code></p></li>
+<li><p><strong>Robust checkpointing</strong>: Flexible checkpoint saving and resuming with automatic management</p></li>
+<li><p><strong>Experiment tracking</strong>: Seamless integration with Weights &amp; Biases for experiment logging</p></li>
+<li><p><strong>Modular architecture</strong>: Clean abstractions for models, losses, training, and evaluation</p></li>
+</ul>
+</section>
+<section id="core-components">
+<h2>Core Components<a class="headerlink" href="#core-components" title="Link to this heading">¶</a></h2>
+<section id="trainer">
+<h3>Trainer<a class="headerlink" href="#trainer" title="Link to this heading">¶</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">Trainer</span></code> class is the central component of Learnax. It orchestrates the training process, handling:</p>
+<ul class="simple">
+<li><p>Model initialization</p></li>
+<li><p>Training loop execution with gradient updates</p></li>
+<li><p>Metrics tracking</p></li>
+<li><p>Checkpointing</p></li>
+<li><p>Distributed training across multiple devices</p></li>
+</ul>
+<p>Example usage:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">trainer</span> <span class="o">=</span> <span class="n">Trainer</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">my_model</span><span class="p">,</span>
+    <span class="n">learning_rate</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span>
+    <span class="n">losses</span><span class="o">=</span><span class="n">my_loss_pipe</span><span class="p">,</span>
+    <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span>
+    <span class="n">train_dataset</span><span class="o">=</span><span class="n">train_data</span><span class="p">,</span>
+    <span class="n">num_epochs</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">batch_size</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span>
+    <span class="n">num_workers</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+    <span class="n">run</span><span class="o">=</span><span class="n">wandb_run</span>
+<span class="p">)</span>
+
+<span class="n">trainer</span><span class="o">.</span><span class="n">init</span><span class="p">()</span>
+<span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="checkpointer">
+<h3>Checkpointer<a class="headerlink" href="#checkpointer" title="Link to this heading">¶</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">Checkpointer</span></code> class manages model checkpoints, providing:</p>
+<ul class="simple">
+<li><p>Automatic saving of periodic checkpoints</p></li>
+<li><p>Retaining the best checkpoints based on metrics</p></li>
+<li><p>Limiting the number of checkpoints to save disk space</p></li>
+<li><p>Simple APIs for loading and resuming training</p></li>
+</ul>
+<p>Example usage:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">checkpointer</span> <span class="o">=</span> <span class="n">Checkpointer</span><span class="p">(</span>
+    <span class="n">registry_path</span><span class="o">=</span><span class="s2">&quot;./experiments&quot;</span><span class="p">,</span>
+    <span class="n">run_id</span><span class="o">=</span><span class="s2">&quot;experiment_1&quot;</span><span class="p">,</span>
+    <span class="n">save_every</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">checkpoint_every</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+    <span class="n">keep_best</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">metric_name</span><span class="o">=</span><span class="s2">&quot;val/loss&quot;</span>
+<span class="p">)</span>
+
+<span class="c1"># Save checkpoint</span>
+<span class="n">checkpointer</span><span class="o">.</span><span class="n">maybe_save_checkpoints</span><span class="p">(</span><span class="n">train_state</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;val/loss&quot;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">})</span>
+
+<span class="c1"># Load checkpoint</span>
+<span class="n">checkpoint_data</span> <span class="o">=</span> <span class="n">checkpointer</span><span class="o">.</span><span class="n">load_latest</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="loss-system">
+<h3>Loss System<a class="headerlink" href="#loss-system" title="Link to this heading">¶</a></h3>
+<p>Learnax provides a modular loss system with:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">LossFunction</span></code>: Base class for individual loss components</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">LossPipe</span></code>: Combines multiple loss functions with weights and scheduling</p></li>
+</ul>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">loss_pipe</span> <span class="o">=</span> <span class="n">LossPipe</span><span class="p">([</span>
+    <span class="n">MSELoss</span><span class="p">(</span><span class="n">weight</span><span class="o">=</span><span class="mf">1.0</span><span class="p">),</span>
+    <span class="n">RegularizationLoss</span><span class="p">(</span><span class="n">weight</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">scheduler</span><span class="o">=</span><span class="k">lambda</span> <span class="n">step</span><span class="p">:</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">step</span><span class="o">/</span><span class="mi">1000</span><span class="p">))</span>
+<span class="p">])</span>
+</pre></div>
+</div>
+</section>
+<section id="experiment-registry">
+<h3>Experiment Registry<a class="headerlink" href="#experiment-registry" title="Link to this heading">¶</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">Registry</span></code> and <code class="docutils literal notranslate"><span class="pre">Run</span></code> classes help manage experiments:</p>
+<ul class="simple">
+<li><p>Track configurations, metrics, and results</p></li>
+<li><p>Restore previous runs for analysis or continued training</p></li>
+<li><p>Integrate with Weights &amp; Biases for enhanced visualization</p></li>
+</ul>
+</section>
+</section>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading">¶</a></h2>
+<p>Install Learnax via pip:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">learnax</span>
+</pre></div>
+</div>
+<p>Requirements:</p>
+<ul class="simple">
+<li><p>JAX &gt;= 0.3.0</p></li>
+<li><p>Flax &gt;= 0.5.0</p></li>
+<li><p>Optax &gt;= 0.1.0</p></li>
+<li><p>Weights &amp; Biases (optional)</p></li>
+</ul>
+</section>
+<section id="getting-started">
+<h2>Getting Started<a class="headerlink" href="#getting-started" title="Link to this heading">¶</a></h2>
+<p>For a quick start, see the following examples:</p>
+<ul class="simple">
+<li><p>Basic model training</p></li>
+<li><p>Distributed training</p></li>
+<li><p>Custom loss functions</p></li>
+<li><p>Checkpoint management</p></li>
+<li><p>Experiment tracking</p></li>
+</ul>
+</section>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Link to this heading">¶</a></h2>
+<p>For detailed API documentation, see the following sections:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="autoapi/learnax/trainer/index.html#module-learnax.trainer" title="learnax.trainer"><code class="xref py py-mod docutils literal notranslate"><span class="pre">learnax.trainer</span></code></a></p></li>
+<li><p><code class="xref py py-mod docutils literal notranslate"><span class="pre">learnax.checkpointer</span></code></p></li>
+<li><p><a class="reference internal" href="autoapi/learnax/loss/index.html#module-learnax.loss" title="learnax.loss"><code class="xref py py-mod docutils literal notranslate"><span class="pre">learnax.loss</span></code></a></p></li>
+<li><p><a class="reference internal" href="autoapi/learnax/registry/index.html#module-learnax.registry" title="learnax.registry"><code class="xref py py-mod docutils literal notranslate"><span class="pre">learnax.registry</span></code></a></p></li>
+</ul>
+<div class="toctree-wrapper compound">
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Learnax - JAX-based Training Framework</a></li>
+<li class="toctree-l1"><a class="reference internal" href="autoapi/index.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="autoapi/learnax/index.html">learnax</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="autoapi/learnax/index.html#submodules">Submodules</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="autoapi/learnax/checkpoint/index.html">learnax.checkpoint</a></li>
+<li class="toctree-l4"><a class="reference internal" href="autoapi/learnax/dataset/index.html">learnax.dataset</a></li>
+<li class="toctree-l4"><a class="reference internal" href="autoapi/learnax/loss/index.html">learnax.loss</a></li>
+<li class="toctree-l4"><a class="reference internal" href="autoapi/learnax/metrics/index.html">learnax.metrics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="autoapi/learnax/registry/index.html">learnax.registry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="autoapi/learnax/run/index.html">learnax.run</a></li>
+<li class="toctree-l4"><a class="reference internal" href="autoapi/learnax/sampler/index.html">learnax.sampler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="autoapi/learnax/trainer/index.html">learnax.trainer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="autoapi/learnax/transform/index.html">learnax.transform</a></li>
+<li class="toctree-l4"><a class="reference internal" href="autoapi/learnax/utils/index.html">learnax.utils</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="autoapi/learnax/index.html#attributes">Attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="autoapi/learnax/index.html#classes">Classes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="autoapi/learnax/index.html#functions">Functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="autoapi/learnax/index.html#package-contents">Package Contents</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="autoapi/learnax/index.html#learnax.Run"><code class="docutils literal notranslate"><span class="pre">Run</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="autoapi/learnax/index.html#learnax.Registry"><code class="docutils literal notranslate"><span class="pre">Registry</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="autoapi/learnax/index.html#learnax.LossPipe"><code class="docutils literal notranslate"><span class="pre">LossPipe</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="autoapi/learnax/index.html#learnax.tree_stack"><code class="docutils literal notranslate"><span class="pre">tree_stack()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="autoapi/learnax/index.html#learnax.tree_unstack"><code class="docutils literal notranslate"><span class="pre">tree_unstack()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="autoapi/learnax/index.html#learnax.Checkpointer"><code class="docutils literal notranslate"><span class="pre">Checkpointer</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="autoapi/learnax/index.html#learnax.in_notebook"><code class="docutils literal notranslate"><span class="pre">in_notebook()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="autoapi/learnax/index.html#learnax.TrainState"><code class="docutils literal notranslate"><span class="pre">TrainState</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="autoapi/learnax/index.html#learnax.libcudart"><code class="docutils literal notranslate"><span class="pre">libcudart</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="autoapi/learnax/index.html#learnax.Trainer"><code class="docutils literal notranslate"><span class="pre">Trainer</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="autoapi/learnax/index.html#id11"><code class="docutils literal notranslate"><span class="pre">tree_stack()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="autoapi/learnax/index.html#id12"><code class="docutils literal notranslate"><span class="pre">tree_unstack()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+</ul>
+</section>
+</section>
+
+
+                </div>
+            </div>
+
+            <div id="side-menu-container">
+
+                <div id="search" role="search">
+        <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+            <input type="text" name="q" placeholder="Search..." />
+            <input type="hidden" name="check_keywords" value="yes" />
+            <input type="hidden" name="area" value="default" />
+        </form>
+</div>
+
+                <div id="side-menu" role="navigation">
+
+                    
+  
+    
+  
+  
+    <ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Learnax - JAX-based Training Framework</a></li>
+<li class="toctree-l1"><a class="reference internal" href="autoapi/index.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="autoapi/learnax/index.html">learnax</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="autoapi/learnax/index.html#submodules">Submodules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="autoapi/learnax/index.html#attributes">Attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="autoapi/learnax/index.html#classes">Classes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="autoapi/learnax/index.html#functions">Functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="autoapi/learnax/index.html#package-contents">Package Contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  
+
+
+                </div>
+
+                
+
+            </div>
+
+        </div>
+
+        <footer>
+    <div id="footer-info">
+        <ul id="build-details">
+            
+                <li class="footer-element">
+                    
+                        <a href="_sources/index.rst.txt" rel="nofollow"> source</a>
+                    
+                </li>
+            
+
+            
+
+            
+        </ul>
+
+        
+            <div id="copyright">
+                &copy; 2024, Center for Bits and Atoms, MIT Media Lab Molecular Machines
+            </div>
+        
+
+        <div id="credit">
+            created with <a href="http://sphinx-doc.org/">Sphinx</a> and <a href="https://github.com/Autophagy/insegel">Insegel</a>
+
+        </div>
+    </div>
+
+    <a id="menu-toggle" class="fa fa-bars" aria-hidden="true"></a>
+
+    <script type="text/javascript">
+      $("#menu-toggle").click(function() {
+        $("#menu-toggle").toggleClass("toggled");
+        $("#side-menu-container").slideToggle(300);
+      });
+    </script>
+
+</footer> 
+
+    </div>
+
+</body>
+
+</html>

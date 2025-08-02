@@ -1,0 +1,72 @@
+learnax.run
+===========
+
+.. py:module:: learnax.run
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   learnax.run.Run
+
+
+Module Contents
+---------------
+
+.. py:class:: Run(id: str, path: str, name: str = None, wandb_run=None)
+
+   Wrapper for wandb run object
+
+
+   .. py:attribute:: id
+
+
+   .. py:attribute:: path
+
+
+   .. py:attribute:: name
+      :value: None
+
+
+
+   .. py:attribute:: wandb_run
+      :value: None
+
+
+
+   .. py:method:: log(data)
+
+
+   .. py:method:: new(project: str, path: str, config: omegaconf.OmegaConf, entity: str = 'molecular-machines')
+      :classmethod:
+
+
+
+   .. py:method:: restore(id: str, path: str, project: str, entity: str = 'molecular-machines')
+      :classmethod:
+
+
+
+   .. py:method:: get_train_state(checkpoint: int = -1)
+
+
+   .. py:method:: get_weights(checkpoint: int = -1)
+
+
+   .. py:method:: get_config()
+
+
+   .. py:method:: read(filepath: str)
+
+
+   .. py:method:: read_all(pattern: str, read_fn: Callable[[str], Any] = lambda x: pickle.load(open(x, 'rb')))
+
+
+   .. py:method:: save(filepath: str, content)
+
+
+   .. py:method:: clear_dir(dirpath: str)
+
+

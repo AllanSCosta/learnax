@@ -1,0 +1,22 @@
+learnax.utils
+=============
+
+.. py:module:: learnax.utils
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   learnax.utils.tree_stack
+   learnax.utils.tree_unstack
+
+
+Module Contents
+---------------
+
+.. py:function:: tree_stack(trees)
+
+.. py:function:: tree_unstack(tree)
+
